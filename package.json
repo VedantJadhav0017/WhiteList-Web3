@@ -1,0 +1,29 @@
+{
+  "name": "test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "hardhat": "^2.3.3"
+  },
+  "dependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.0.0",
+    "@openzeppelin/contracts": "^4.0.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "ethers": "^5.0.0",
+    "express": "^4.19.2"
+  },
+  "contracts": {
+    "CryptoDevs.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.19;\n\nimport \"@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol\";\nimport \"@openzeppelin/contracts/access/Ownable.sol\";\nimport \"./Whitelist.sol\";\n\ncontract CryptoDevs is ERC721Enumerable, Ownable {\n    uint256 constant public maxTokenIds = 100;\n    uint256 constant public _price = 0.001 ether;\n    uint256 public reservedTokens;\n    uint256 public reservedTokensClaimed = 0;\n\n    // Whitelist contract instance\n    Whitelist whitelist;\n\n    constructor (address whitelistContract) \n    ERC721(\"Crypto Devs\", \"CD\") \n    Ownable() {\n        whitelist = Whitelist(whitelistContract);\n        reservedTokens = whitelist.MaxWhitelistedAddresses();\n    }\n\n    function mint() public payable {\n        require(totalSupply() + reservedTokens - reservedTokensClaimed < maxTokenIds, \"EXCEEDED_MAX_SUPPLY\");\n\n        if (whitelist.WhitelistedAddresses(msg.sender) && msg.value < _price) {\n            require(balanceOf(msg.sender) == 0, \"ALREADY_OWNED\");\n            reservedTokensClaimed += 1;\n        } else {\n            require(msg.value >= _price, \"NOT_ENOUGH_ETHER\");\n        }\n    }\n}\n"
+    }
+  }
+}
