@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
 import { ethers } from 'ethers';
+import React, { useState } from 'react';
 
-const App = () => {
+const AddToWhitelist = () => {
   const [address, setAddress] = useState('');
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
 
-  const handleAddToWhitelist = async () => {
+  const connectWallet = async () => {
     if (!window.ethereum) {
       alert('MetaMask is not installed!');
       return;
@@ -12,37 +14,57 @@ const App = () => {
 
     try {
       await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
+      const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+      const newSigner = newProvider.getSigner();
+      setProvider(newProvider);
+      setSigner(newSigner);
+      alert('Wallet connected!');
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      alert('An error occurred. Please check the console for details.');
+    }
+  };
 
+  const handleAddToWhitelist = async () => {
+    if (!signer) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    try {
       const whitelistAddress = "0xC0e5086CEC444e6cbA5a082323a751b83530299F";
-      const cryptoDevsAddress = "0x2622F1565a5776D465B32b7fF8F3cD3098B6B2FD";
-
       const whitelistAbi = [
         "function addAddressToWhitelist(address _newAddress) public",
-        "function WhitelistedAddresses(address) public view returns (bool)",
-        "function MaxWhitelistedAddresses() public view returns (uint8)"
-      ];
-
-      const cryptoDevsAbi = [
-        "function mint() public payable",
-        "function withdraw() public",
-        "function totalSupply() public view returns (uint256)",
-        "function balanceOf(address) public view returns (uint256)"
       ];
 
       const whitelistContract = new ethers.Contract(whitelistAddress, whitelistAbi, signer);
-      const cryptoDevsContract = new ethers.Contract(cryptoDevsAddress, cryptoDevsAbi, signer);
-
-      const tx1 = await whitelistContract.addAddressToWhitelist(address);
-      await tx1.wait();
+      const tx = await whitelistContract.addAddressToWhitelist(address);
+      await tx.wait();
       console.log(`Address ${address} added to whitelist`);
+      alert('Address added to whitelist successfully!');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('An error occurred. Please check the console for details.');
+    }
+  };
 
-      const tx2 = await cryptoDevsContract.mint({ value: ethers.utils.parseEther("0.001") });
-      await tx2.wait();
+  const handleMintNFT = async () => {
+    if (!signer) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    try {
+      const cryptoDevsAddress = "0x2622F1565a5776D465B32b7fF8F3cD3098B6B2FD";
+      const cryptoDevsAbi = [
+        "function mint() public payable",
+      ];
+
+      const cryptoDevsContract = new ethers.Contract(cryptoDevsAddress, cryptoDevsAbi, signer);
+      const tx = await cryptoDevsContract.mint({ value: ethers.utils.parseEther("0.001") });
+      await tx.wait();
       console.log("NFT Minted");
-
-      alert('Address added to whitelist and NFT minted successfully!');
+      alert('NFT minted successfully!');
     } catch (error) {
       console.error('Error:', error);
       alert('An error occurred. Please check the console for details.');
@@ -52,15 +74,17 @@ const App = () => {
   return (
     <div>
       <h1>Whitelist and Mint NFT</h1>
+      <button onClick={connectWallet}>Connect to Wallet</button>
       <input
         type="text"
         value={address}
         onChange={(e) => setAddress(e.target.value)}
         placeholder="Enter address"
       />
-      <button onClick={handleAddToWhitelist}>Add to Whitelist and Mint NFT</button>
+      <button onClick={handleAddToWhitelist}>Add to Whitelist</button>
+      <button onClick={handleMintNFT}>Mint NFT</button>
     </div>
   );
 };
 
-export default App;
+export default AddToWhitelist;
